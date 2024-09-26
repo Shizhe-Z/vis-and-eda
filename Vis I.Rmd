@@ -95,7 +95,93 @@ weather_df |>
   geom_smooth(method="lm", se = FALSE)
 ```
 
+## small things 
 
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax))+
+  geom_point(aes(color=name), alpha = 0.3)+
+  geom_smooth(se=FALSE)
+```
 
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax))+
+  geom_hex()
+```
 
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax))+
+  geom_point(color="blue")
+```
+
+## Univariate plots
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, fill = name))+
+  geom_histogram(position = "dodge")
+```
+
+how to fix 
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, fill = name))+
+  geom_histogram()+
+  facet_grid(.~name)
+```
+
+density plot?
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, fill = name))+
+  geom_density(alpha=.3)
+```
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=name, y=tmin, fill=name))+
+  geom_boxplot()
+```
+
+violin plot
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=name, y=tmin, fill = name))+
+  geom_violin(alpha=.3)+
+  stat_summary(fun = "median", color = "blue")
+```
+
+ridge plot
+
+```{r}
+ggplot(weather_df, aes(x = tmax, y = name)) + 
+  geom_density_ridges(scale = .85)
+```
+
+```{r}
+weather_df |> 
+  ggplot(aes(x = prcp, fill = name)) + 
+  geom_density(alpha=.3)
+```
+
+## Saving and embedding plots
+
+```{r}
+ggp_weather = 
+  ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point(aes(color = name), alpha = .5) 
+
+ggsave("ggp_weather.pdf", ggp_weather, width = 8, height = 5)
+```
+
+```{r, fig.width=8, fig.asp=.6}
+ggp_weather = 
+  ggplot(weather_df, aes(x = tmin, y = tmax)) + 
+  geom_point(aes(color = name), alpha = .5) 
+```
 
