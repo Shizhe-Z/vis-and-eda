@@ -1,5 +1,5 @@
 ---
-title: "Visualization"
+title: "Visualization I"
 author: "Sherry Zhang"
 date: "2024-09-26"
 output: html_document
@@ -46,10 +46,54 @@ ggp_weather + geom_point()
 
 ```
 
+# Fancier scatterplot
 
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax, color = name))+
+  geom_point(alpha = 0.3, size = 0.8) +
+  geom_smooth(se=FALSE)
+```
 
+Where you definine geom_point
 
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax))+
+  geom_point(aes(color=name), alpha = 0.3, size = 0.8) +
+  geom_smooth(se=FALSE)
+```
 
+using faceting real quick
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=tmin, y=tmax, color=name))+
+  geom_point(alpha = 0.3) +
+  geom_smooth(se=FALSE)+
+  facet_grid(. ~name)
+
+```
+
+more interesting scatter plot
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=date, y=tmax, color=name, size=prcp))+
+  geom_point(alpha = 0.3)+
+  geom_smooth(se=FALSE)+
+  facet_grid(.~name)
+  
+weather_df |> 
+  filter(name == "CentralPark_NY") |> 
+  mutate(
+    tmax_fahr = tmax *(9/5)+32,
+    tmin_fahr = tmin *(9/5)+32,
+  ) |> 
+  ggplot(aes(x=tmin_fahr, y=tmax_fahr))+
+  geom_point()+
+  geom_smooth(method="lm", se = FALSE)
+```
 
 
 
