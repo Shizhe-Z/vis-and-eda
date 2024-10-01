@@ -79,7 +79,7 @@ weather_df |>
 Look at color
 
 ```{r}
-weather_df |> 
+ggp_scatterplot = weather_df |> 
   ggplot(aes(x = tmin, y = tmax)) + 
   geom_point(aes(color = name), alpha = .5) + 
   labs(
@@ -92,15 +92,103 @@ weather_df |>
   viridis::scale_color_viridis(discrete = TRUE)
 ```
 
+Themes
 
+```{r}
+ggp_scatterplot +
+  theme(legend.position = "bottom")
 
+ggp_scatterplot +
+  theme_bw() +
+  theme(legend.position = "bottom")
 
+ggp_scatterplot +
+  theme(legend.position = "bottom") +
+  theme_minimal()
 
+ggp_scatterplot +
+  theme(legend.position = "bottom")+
+  theme_classic()
 
+ggp_scatterplot +
+  theme(legend.position = "bottom") +
+  ggthemes::theme_excel()
+```
 
+LA
+```{r}
+ggplot(weather_df, aes(x = date, y = tmax, color = name)) + 
+  geom_smooth(se = FALSE) + 
+  geom_point(aes(size = prcp), alpha = .75) + 
+  labs(
+    title = "Temperature plot",
+    x = "Date",
+    y = "Maxiumum daily temperature (C)",
+    color = "Location",
+    caption = "Data from the rnoaa package"
+  ) + 
+  viridis::scale_color_viridis(discrete = TRUE) + 
+  theme_minimal() + 
+  theme(legend.position = "bottom")
+```
 
+Extra bonus in ggplot
+Use different datasets in different 'geom's
 
+```{r}
+central_park_df =
+  weather_df |> 
+  filter(name == "CentralPark_NY")
 
+molokai_df = 
+  weather_df |> 
+  filter(name == "Molokai_HI")
 
+molokai_df |> 
+  ggplot(aes(x=date, y=tmax, color=name))+
+  geom_point()+
+  geom_line(data = central_park_df)
+```
+
+Mutiple panels
+
+```{r}
+weather_df |> 
+  ggplot(aes(x = tmax, fill = name))+
+  geom_density()+
+  facet_grid( ~name)
+```
+
+patch plots
+
+```{r}
+ggp_tmax_tmin =
+  weather_df |> 
+  ggplot(aes(x = tmin, y = tmax, color = name))+
+  geom_point(alpha = .3)
+
+ggp_tmax_density =
+  weather_df |> 
+  ggplot(aes(x = tmax, fill = name))+
+  geom_density(alpha = .3)
+
+ggp_tmax_date =
+  weather_df |> 
+  ggplot(aes(x = date, y = tmax, color = name))+
+  geom_point(alpha = .3) +
+  geom_smooth(se=FALSE)
+
+(ggp_tmax_tmin + ggp_tmax_density)/ggp_tmax_date
+```
+
+Data manipulation
+
+```{r}
+weather_df |>
+  mutate(name = forcats::fct_relevel(name, c("Molokai_HI", "CentralPark_NY", "Waterhole_WA"))) |> 
+  ggplot(aes(x = name, y = tmax)) + 
+  geom_violin(aes(fill = name), color = "blue", alpha = .5) + 
+  theme(legend.position = "bottom")
+```
 
 
