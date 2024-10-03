@@ -1,0 +1,254 @@
+---
+title: "EDA"
+author: "Shizhe Zhang"
+date: "2024-10-03"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(tidyverse)
+library(ggridges)
+```
+
+```{r}
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USW00022534", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2021-01-01",
+    date_max = "2022-12-31") |>
+  mutate(
+    name = case_match(
+      id, 
+      "USW00094728" ~ "CentralPark_NY", 
+      "USW00022534" ~ "Molokai_HI",
+      "USS0023B17S" ~ "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10,
+    month = floor_date(date, unit = "month")) |>
+  select(name, id, everything())
+```
+
+```{r}
+weather_df |> 
+  ggplot(aes(x=prcp)) +
+  geom_histogram()
+```
+
+```{r}
+weather_df |> 
+  filter(prcp>1000)
+```
+
+```{r}
+weather_df |> 
+  filter(tmax>20, tmax<30) |> 
+  ggplot(aes(x=tmin, y=tmax, color=name, shape=name)) +
+  geom_point()
+```
+
+## group by
+
+```{r}
+weather_df |> 
+  group_by(name, month)
+```
+
+counting stuff
+
+```{r}
+weather_df |> 
+  group_by(name) |> 
+  summarise(n_nbs=n())
+
+weather_df |>
+  group_by(name, month) |>
+  summarize(n_obs = n())
+
+weather_df |>
+  group_by(month) |>
+  summarize(
+    n_obs = n(),
+    n_dis = n_distinct(month))
+```
+
+```{r}
+weather_df |>
+  count(name)
+```
+
+## 2x2 table
+
+```{r}
+weather_df |>
+  drop_na(tmax) |> 
+  filter(name != "Molokai_H") |> 
+  mutate(
+    cold = case_when(
+      tmax <5 ~ "cold",
+      tmax >=5 ~ "not_cold"
+    )
+  ) |> 
+  group_by(name, cold) 
+  
+weather_df |>
+  drop_na(tmax) |> 
+  filter(name != "Molokai_H") |> 
+  mutate(
+    cold = case_when(
+      tmax <5 ~ "cold",
+      tmax >=5 ~ "not_cold"
+    )
+  ) |> 
+  janitor::tabyl(name,cold)
+```
+
+## general numeric summarises
+
+summarise and then plot
+
+```{r}
+weather_df |> 
+  group_by(name, month) |> 
+  summarise(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    median_tmin = median(tmin, na.rm = TRUE),
+    sd_prcp = sd(prcp, na.rm = TRUE)
+    ) |> 
+  ggplot(aes(x = month, y = mean_tmax, color = name))+
+  geom_point()+
+  geom_line()
+```
+
+format for readers
+
+```{r}
+weather_df |> 
+  group_by(name, month) |> 
+  summarise(
+    mean_tmax = mean(tmax, na.rm = TRUE)
+  ) |> 
+  pivot_wider(
+    names_from = name,
+    values_from = mean_tmax
+  ) |> 
+  knitr::kable(
+    digits = 3,
+    col.names = c("Month", "Central Park", "Molokai", "Waterhole")
+  )
+```
+
+## group mutate
+
+```{r}
+weather_df |> 
+  group_by(name) |> 
+  mutate(mean_tmax = mean(tmax, na.rm = TRUE)) |> 
+  view()
+
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    centered_tmax = tmax - mean_tmax) |> 
+  ggplot(aes(x = date, y = centered_tmax, color = name)) + 
+    geom_point() 
+```
+
+## window functions
+
+```{r}
+weather_df |>
+  group_by(name, month) |>
+  mutate(temp_ranking = min_rank(desc(tmax))) |> 
+  filter(temp_ranking < 4)
+
+weather_df |>
+  group_by(name, month) |>
+  filter(min_rank(tmax) < 4) |> 
+  arrange(tmax)
+```
+
+```{r}
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    lagged_tmax = lag(tmax),
+    temp_change = tmax - lagged_tmax
+  ) |> 
+  filter(min_rank(temp_change) < 3)
+
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    lagged_tmax = lag(tmax),
+    temp_change = tmax - lagged_tmax
+  ) |> 
+  summarise(
+    sd_tmax_change = sd(temp_change, na.rm = TRUE)
+  )
+```
+
+
+## PULSE data
+
+```{r}
+pulse_data = 
+  haven::read_sas("./public_pulse_data.sas7bdat") |>
+  janitor::clean_names() |>
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit", 
+    names_prefix = "bdi_score_",
+    values_to = "bdi") |>
+  select(id, visit, everything()) |>
+  mutate(
+    visit = replace(visit, visit == "bl", "00m"),
+    visit = factor(visit, levels = str_c(c("00", "01", "06", "12"), "m"))) |>
+  arrange(id, visit)
+
+pulse_data |> 
+  group_by(visit) |> 
+  summarize(
+    mean_bdi = mean(bdi, na.rm = TRUE),
+    median_bdi = median(bdi, na.rm = TRUE)) |> 
+  knitr::kable(digits = 3)
+
+```
+
+## FAS
+
+```{r}
+pup_data = 
+  read_csv("./FAS_pups.csv") |>
+  janitor::clean_names() |>
+  mutate(sex = recode(sex, `1` = "male", `2` = "female")) 
+
+litter_data = 
+  read_csv("./FAS_litters.csv") |>
+  janitor::clean_names() |>
+  separate(group, into = c("dose", "day_of_tx"), sep = 3)
+
+fas_data = left_join(pup_data, litter_data, by = "litter_number") 
+
+fas_data |> 
+  group_by(dose, day_of_tx) |> 
+  drop_na(dose) |> 
+  summarize(mean_pivot = mean(pd_pivot, na.rm = TRUE)) |> 
+  pivot_wider(
+    names_from = dose, 
+    values_from = mean_pivot) |> 
+  knitr::kable(digits = 3)
+```
+
+
+
+
+
+
+
+
+
+
